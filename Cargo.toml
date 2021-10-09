@@ -53,7 +53,8 @@ js-sys = { version = "0.3.35" }
 web-sys = { version = "0.3.35", features = [ "AudioContext", "AudioContextOptions", "AudioBuffer", "AudioBufferSourceNode", "AudioNode",  "AudioDestinationNode", "Window", "AudioContextState"] }
 
 [target.'cfg(target_os = "android")'.dependencies]
-oboe = { version = "0.4.0", features = [ "java-interface" ] }
+oboe = { version = "0.4.0" }
+# aaudio = "0.1"
 ndk = "0.3"
 ndk-glue = "0.3"
 jni = "0.19"

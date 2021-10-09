@@ -18,6 +18,9 @@ mod android_media;
 mod convert;
 mod input_callback;
 mod output_callback;
+mod deviceinfo;
+
+// use deviceinfo;
 
 use self::android_media::{get_audio_record_min_buffer_size, get_audio_track_min_buffer_size};
 use self::input_callback::CpalInputCallback;
@@ -36,7 +39,7 @@ const SAMPLE_RATES: [i32; 13] = [
 ];
 
 pub struct Host;
-pub struct Device(Option<oboe::AudioDeviceInfo>);
+pub struct Device(Option<deviceinfo::AudioDeviceInfo>);
 pub enum Stream {
     Input(Box<RefCell<dyn AudioInputStream>>),
     Output(Box<RefCell<dyn AudioOutputStream>>),
@@ -60,32 +63,17 @@ impl HostTrait for Host {
     }
 
     fn devices(&self) -> Result<Self::Devices, DevicesError> {
-        if let Ok(devices) = oboe::AudioDeviceInfo::request(oboe::AudioDeviceDirection::InputOutput)
-        {
-            Ok(devices
-                .into_iter()
-                .map(|d| Device(Some(d)))
-                .collect::<Vec<_>>()
-                .into_iter())
-        } else {
             Ok(vec![Device(None)].into_iter())
-        }
+       
     }
 
     fn default_input_device(&self) -> Option<Self::Device> {
-        if let Ok(devices) = oboe::AudioDeviceInfo::request(oboe::AudioDeviceDirection::Input) {
-            devices.into_iter().map(|d| Device(Some(d))).next()
-        } else {
-            Some(Device(None))
-        }
+        Some(Device(None))
+
     }
 
     fn default_output_device(&self) -> Option<Self::Device> {
-        if let Ok(devices) = oboe::AudioDeviceInfo::request(oboe::AudioDeviceDirection::Output) {
-            devices.into_iter().map(|d| Device(Some(d))).next()
-        } else {
-            Some(Device(None))
-        }
+        Some(Device(None))
     }
 }
 
@@ -146,65 +134,65 @@ fn default_supported_configs(is_output: bool) -> VecIntoIter<SupportedStreamConf
 }
 
 fn device_supported_configs(
-    device: &oboe::AudioDeviceInfo,
+    device: &deviceinfo::AudioDeviceInfo,
     is_output: bool,
 ) -> VecIntoIter<SupportedStreamConfigRange> {
-    let sample_rates = if !device.sample_rates.is_empty() {
-        device.sample_rates.as_slice()
-    } else {
-        &SAMPLE_RATES
-    };
+    // let sample_rates = if !device.sample_rates.is_empty() {
+    //     device.sample_rates.as_slice()
+    // } else {
+    //     &SAMPLE_RATES
+    // };
 
-    const ALL_CHANNELS: [i32; 2] = [1, 2];
-    let channel_counts = if !device.channel_counts.is_empty() {
-        device.channel_counts.as_slice()
-    } else {
-        &ALL_CHANNELS
-    };
+    // const ALL_CHANNELS: [i32; 2] = [1, 2];
+    // let channel_counts = if !device.channel_counts.is_empty() {
+    //     device.channel_counts.as_slice()
+    // } else {
+    //     &ALL_CHANNELS
+    // };
 
-    const ALL_FORMATS: [oboe::AudioFormat; 2] = [oboe::AudioFormat::I16, oboe::AudioFormat::F32];
-    let formats = if !device.formats.is_empty() {
-        device.formats.as_slice()
-    } else {
-        &ALL_FORMATS
-    };
+    // const ALL_FORMATS: [oboe::AudioFormat; 2] = [oboe::AudioFormat::I16, oboe::AudioFormat::F32];
+    // let formats = if !device.formats.is_empty() {
+    //     device.formats.as_slice()
+    // } else {
+    //     &ALL_FORMATS
+    // };
 
-    let mut output = Vec::with_capacity(sample_rates.len() * channel_counts.len() * formats.len());
-    for sample_rate in sample_rates {
-        for channel_count in channel_counts {
-            assert!(*channel_count > 0);
-            if *channel_count > 2 {
-                // could be supported by the device, but oboe does not support more than 2 channels
-                continue;
-            }
-            let channel_mask = CHANNEL_MASKS[*channel_count as usize - 1];
-            for format in formats {
-                let (android_format, sample_format) = match format {
-                    oboe::AudioFormat::I16 => {
-                        (android_media::ENCODING_PCM_16BIT, SampleFormat::I16)
-                    }
-                    oboe::AudioFormat::F32 => {
-                        (android_media::ENCODING_PCM_FLOAT, SampleFormat::F32)
-                    }
-                    _ => panic!("Unexpected format"),
-                };
-                let buffer_size = buffer_size_range_for_params(
-                    is_output,
-                    *sample_rate,
-                    channel_mask,
-                    android_format,
-                );
-                output.push(SupportedStreamConfigRange {
-                    channels: cmp::min(*channel_count as u16, 2u16),
-                    min_sample_rate: SampleRate(*sample_rate as u32),
-                    max_sample_rate: SampleRate(*sample_rate as u32),
-                    buffer_size,
-                    sample_format,
-                });
-            }
-        }
-    }
-
+    // let mut output = Vec::with_capacity(sample_rates.len() * channel_counts.len() * formats.len());
+    // for sample_rate in sample_rates {
+    //     for channel_count in channel_counts {
+    //         assert!(*channel_count > 0);
+    //         if *channel_count > 2 {
+    //             // could be supported by the device, but oboe does not support more than 2 channels
+    //             continue;
+    //         }
+    //         let channel_mask = CHANNEL_MASKS[*channel_count as usize - 1];
+    //         for format in formats {
+    //             let (android_format, sample_format) = match format {
+    //                 oboe::AudioFormat::I16 => {
+    //                     (android_media::ENCODING_PCM_16BIT, SampleFormat::I16)
+    //                 }
+    //                 oboe::AudioFormat::F32 => {
+    //                     (android_media::ENCODING_PCM_FLOAT, SampleFormat::F32)
+    //                 }
+    //                 _ => panic!("Unexpected format"),
+    //             };
+    //             let buffer_size = buffer_size_range_for_params(
+    //                 is_output,
+    //                 *sample_rate,
+    //                 channel_mask,
+    //                 android_format,
+    //             );
+    //             output.push(SupportedStreamConfigRange {
+    //                 channels: cmp::min(*channel_count as u16, 2u16),
+    //                 min_sample_rate: SampleRate(*sample_rate as u32),
+    //                 max_sample_rate: SampleRate(*sample_rate as u32),
+    //                 buffer_size,
+    //                 sample_format,
+    //             });
+    //         }
+    //     }
+    // }
+    let output = vec![];
     output.into_iter()
 }
 
