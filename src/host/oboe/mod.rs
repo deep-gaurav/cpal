@@ -16,9 +16,9 @@ use crate::{
 
 mod android_media;
 mod convert;
+mod deviceinfo;
 mod input_callback;
 mod output_callback;
-mod deviceinfo;
 
 // use deviceinfo;
 
@@ -63,13 +63,11 @@ impl HostTrait for Host {
     }
 
     fn devices(&self) -> Result<Self::Devices, DevicesError> {
-            Ok(vec![Device(None)].into_iter())
-       
+        Ok(vec![Device(None)].into_iter())
     }
 
     fn default_input_device(&self) -> Option<Self::Device> {
         Some(Device(None))
-
     }
 
     fn default_output_device(&self) -> Option<Self::Device> {
@@ -112,20 +110,20 @@ fn default_supported_configs(is_output: bool) -> VecIntoIter<SupportedStreamConf
         for (mask_idx, channel_mask) in CHANNEL_MASKS.iter().enumerate() {
             let channel_count = mask_idx + 1;
             for sample_rate in &SAMPLE_RATES {
-                if let SupportedBufferSize::Range { min, max } = buffer_size_range_for_params(
+                let buffer_size = buffer_size_range_for_params(
                     is_output,
                     *sample_rate,
                     *channel_mask,
                     android_format,
-                ) {
-                    output.push(SupportedStreamConfigRange {
-                        channels: channel_count as u16,
-                        min_sample_rate: SampleRate(*sample_rate as u32),
-                        max_sample_rate: SampleRate(*sample_rate as u32),
-                        buffer_size: SupportedBufferSize::Range { min, max },
-                        sample_format: *sample_format,
-                    });
-                }
+                );
+
+                output.push(SupportedStreamConfigRange {
+                    channels: channel_count as u16,
+                    min_sample_rate: SampleRate(*sample_rate as u32),
+                    max_sample_rate: SampleRate(*sample_rate as u32),
+                    buffer_size,
+                    sample_format: *sample_format,
+                });
             }
         }
     }
